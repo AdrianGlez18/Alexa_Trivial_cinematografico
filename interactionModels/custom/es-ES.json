@@ -1,7 +1,7 @@
 {
   "interactionModel": {
     "languageModel": {
-      "invocationName": "trivial cinematografico",
+      "invocationName": "change me",
       "intents": [
         {
           "name": "AMAZON.CancelIntent",
@@ -120,9 +120,15 @@
             {
               "name": "actor",
               "type": "AMAZON.Actor"
+            },
+            {
+              "name": "genre",
+              "type": "AMAZON.Genre"
             }
           ],
           "samples": [
+            "es de {genre}",
+            "{genre}",
             "se llama {movie}",
             "se titula {movie}",
             "por {actor}",
@@ -146,5 +152,5 @@
       "types": []
     }
   },
-  "version": "11"
+  "version": "2"
 }

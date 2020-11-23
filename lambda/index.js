@@ -75,7 +75,17 @@ const AnswerIntentHandler = {
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'AnswerIntent';
     },
     handle(handlerInput) {
-        const AnswerValue = handlerInput.requestEnvelope.request.intent.slots.year.value;   //Aqui de momento puse year, pero haría falta un condicional segun el tipo de dato. Por eso decia lo de questionType.
+        //const AnswerValue = handlerInput.requestEnvelope.request.intent.slots.year.value;   //Aqui de momento puse year, pero haría falta un condicional segun el tipo de dato. Por eso decia lo de questionType.
+        let AnswerValue = ''
+        if (currentquest.invoce === 'year') {
+         AnswerValue = handlerInput.requestEnvelope.request.intent.slots.year.value;
+          }
+          else if (currentquest.invoce === 'genre') {
+             AnswerValue = handlerInput.requestEnvelope.request.intent.slots.genre.value;
+          }
+          else {
+             AnswerValue = handlerInput.requestEnvelope.request.intent.slots.actor.value;
+          }
         /////////////////////////////////////////////////////////////////
         //De aqui para abajo es copiado de la plantilla/////////////////
         ////////////////////////////////////////////////////////////////
@@ -84,13 +94,38 @@ const AnswerIntentHandler = {
             speakOutput += 'Responde sí o no';
         }
         else {
-            if (AnswerValue === currentIndex.year) {
-                speakOutput += 'Respuesta correcta! ... ' + '.';
-                hits++;
-            }
-            else  {
-                speakOutput += 'Respuesta incorrecta, la respuesta correcta es ' +  currentIndex.year+ /*' porque ' + currentIndex.answer + */ '.'; //Esto de momento no lo usamos
-            }
+            if (currentquest.invoce === 'year') {
+                if (AnswerValue === currentIndex.year) {
+                    speakOutput += 'Respuesta correcta! ... ' + '.';
+                    hits++;
+                }
+                else  {
+                    speakOutput += 'Respuesta incorrecta, la respuesta correcta es ' +  currentIndex.year+ /*' porque ' + currentIndex.answer + */ '.'; //Esto de momento no lo usamos
+                }
+          }
+          else {
+              //speakOutput += '         ' + AnswerValue + '           ';
+                if (currentIndex[currentquest.invoce].includes(AnswerValue)) {
+                    let cvpfarr = ''
+                    for (var i = 0; i < currentIndex[currentquest.invoce].length; i++) {
+                        if (currentIndex[currentquest.invoce][i] !== AnswerValue) {
+                            cvpfarr += currentIndex[currentquest.invoce][i]+' , '
+                        }
+                    }
+                    speakOutput += 'Respuesta correcta! ...  otras respuestas hubieran sido: ' + cvpfarr + '.';
+                    hits++;
+                }
+                else  {
+                    let cvpfarr = ''
+                    for (var j = 0; j < currentIndex[currentquest.invoce].length; j++) {
+                        cvpfarr += currentIndex[currentquest.invoce][j]
+                        if (j < currentIndex[currentquest.invoce].length-1) {
+                            cvpfarr += ' o '
+                        }
+                    }
+                    speakOutput += 'Respuesta incorrecta, la respuesta seria '+ cvpfarr +'.'; //Esto de momento no lo usamos
+                }
+          }
         }
         currentIndex = null;
         speakOutput += ' ... Continuamos? ';
@@ -216,68 +251,77 @@ const ErrorHandler = {
     }
 };
 //Variables necesarias
-let currentIndex, currentStatus, questionsList, hits, exit, pending, count;
+let currentIndex,currentquest, currentStatus, questionsList, datalist, hits, exit, pending, count;
 
 //Esta es la lista de preguntas de las que va seleccionando el programa. Cuando este acabado, se reemplaza esto por la funcion de seleccionar 5 elementos aleatorios del fichero, ya que de aqui se van borrando
 //para evitar preguntas duplicadas.
 function initialize() {
     questionsList = {
+      '0': {
+        'invoce' : 'year',
+        'quest' : 'En que año salio la película',
+        'ans': 'Correcto, Esta peli salio en '
+      },
+      '1': {
+        'invoce' : 'genre',
+        'quest' : 'A que género pertenece ',
+        'ans': 'Correcto, También pertence al género de '
+      },
+      '2': {
+        'invoce' : 'protagonist',
+        'quest' : 'Dime un protagonista de la pelicula ',
+        'ans': 'Correcto, Otros serían '
+      }
+    };
+    datalist = {
         '0' : {
-        'id' : '0',
-        'question' : '¿En que año se estrenó matrix?',
-        'title' : 'Matrix',
-        'year' : '1999',
-        'genre' : ['Ciencia ficción', 'Acción'],
-        'protagonists' : ['Keanu Reeves','Laurence Fishburne','Carrie-Anne Moss','Hugo Weaving','Joe Pantoliano','Marcus Chong','Paul Goddard','Gloria Foster']
-    },
-    '1' : {
-        'id' : '1',
-        'question' : '¿En que año se estrenó Regreso al fururo?',
-        'title' : 'Regreso al futuro',
-        'year' : '1985',
-        'genre' : ['Ciencia ficción', 'Aventuras','Comedia'],
-        'protagonists' : ['Michael Fox','Christopher Lloyd','Crispin Glover','Lea Thompson','Thomas Wilson']
-    },
-    '2' : {
-        'id' : '2',
-        'question' : '¿En que año se estrenó Capitana Marvel?',
-        'title' : 'Capitana Marvel',
-        'year' : '2019',
-        'genre' : ['Ciencia ficción', 'Acción','Superhéroes'],
-        'protagonists' : ['Brie Larson','Samuel Jackson','Ben Mendelsohn','Djimon Hounsou','Lee Pace','Lashana Lynch','Gemma Chan','Clark Gregg','Annette Bening','Jude Law']
-    }
-    
-    }
+            'id' : '0',
+            'title' : 'Matrix',
+            'year' : '1999',
+            'genre' : ['ciencia ficción', 'acción'],
+            'protagonist' : ['keanu reeves','laurence fishburne','carrie-anne moss','hugo weaving','joe pantoliano','marcus chong','paul goddard','gloria foster']
+        },
+        '1' : {
+            'id' : '1',
+            'title' : 'Regreso al futuro',
+            'year' : '1985',
+            'genre' : ['ciencia ficción', 'aventuras','comedia'],
+            'protagonist' : ['michael fox','christopher lloyd','crispin glover','lea thompson','thomas wilson']
+        },
+        '2' : {
+            'id' : '2',
+            'title' : 'Capitana Marvel',
+            'year' : '2019',
+            'genre' : ['ciencia ficción', 'acción','superhéroes'],
+            'protagonist' : ['brie larson','samuel jackson','ben mendelsohn','djimon hounsou','lee pace','lashana lynch','gemma chan','clark gregg','annette bening','jude law']
+        }
+    };
 }
 
 function getRandomItem(lst) {
     if (Object.keys(lst).length === 0) {
         return null;
     }
-    currentIndex =  lst[Object.keys(lst)[Math.floor(Math.random()*Object.keys(lst).length)]];
-    return currentIndex;
+    return lst[Object.keys(lst)[Math.floor(Math.random()*Object.keys(lst).length)]];
 }
 
 //Esto también pienso cambiarlo
 function getQuestion(random = true) {
-    let speechText = '';
     if (random) {
-        speechText = getRandomItem(questionsList);
+        currentIndex = getRandomItem(datalist);
+        currentquest = getRandomItem(questionsList);
         if (currentIndex === null && pending === null) {
             const speakOutput = 'Ya respondiste todas las preguntas! ... Has conseguido acertar ' + hits + ' de ' + count + ' preguntas.';
             exit = true;
             return speakOutput;
         }
         else if (currentIndex === null) {
-            return 'Ya no te quedan más preguntas nuevas, pero sí te queda una pendiente, vamos con ella. ... ' + speechText.question + '? ';
+            return 'Ya no te quedan más preguntas nuevas, pero sí te queda una pendiente, vamos con ella. ... ' + currentquest.quest + currentIndex.title + '? ';
         }
-        delete questionsList[currentIndex.id];
+        delete datalist[currentIndex.id];
         count++;
     }
-    else {
-        speechText = currentIndex;
-    }
-    const speakOutput =  speechText.question + '? ';
+    const speakOutput =  currentquest.quest + currentIndex.title + '? ';
     return speakOutput
 }
 /**
