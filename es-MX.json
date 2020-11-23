@@ -1,0 +1,97 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "en qué año pasó",
+      "intents": [
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.NavigateHomeIntent",
+          "samples": []
+        },
+        {
+          "name": "AnswerIntent",
+          "slots": [
+            {
+              "name": "numberSlot",
+              "type": "AMAZON.FOUR_DIGIT_NUMBER"
+            }
+          ],
+          "samples": [
+            "la respuesta es en el {numberSlot}",
+            "la respuesta es el {numberSlot}",
+            "{numberSlot}",
+            "año {numberSlot}",
+            "en el año {numberSlot}",
+            "en {numberSlot}",
+            "es {numberSlot}",
+            "la respuesta es {numberSlot}"
+          ]
+        },
+        {
+          "name": "AMAZON.YesIntent",
+          "samples": []
+        },
+        {
+          "name": "ClueIntent",
+          "slots": [],
+          "samples": [
+            "pistas",
+            "pista",
+            "dime la pista",
+            "dame una pista"
+          ]
+        },
+        {
+          "name": "PendingIntent",
+          "slots": [],
+          "samples": [
+            "pendiente",
+            "dime la pregunta pendiente",
+            "dime la pendiente"
+          ]
+        },
+        {
+          "name": "AMAZON.NoIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.RepeatIntent",
+          "samples": [
+            "Repite la pregunta",
+            "Vuelve a decirlo",
+            "Dime otra vez",
+            "Dime de nuevo",
+            "Repítemelo",
+            "Repite de nuevo",
+            "Repite"
+          ]
+        },
+        {
+          "name": "AMAZON.NextIntent",
+          "samples": [
+            "di me la siguiente",
+            "siguiente cuestión",
+            "siguiente pregunta",
+            "dime la siguiente",
+            "siguiente",
+            "paso palabra",
+            "pasa palabra"
+          ]
+        }
+      ],
+      "types": []
+    }
+  },
+  "version": "9"
+}
