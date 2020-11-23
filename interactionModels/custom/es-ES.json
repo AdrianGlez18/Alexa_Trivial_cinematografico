@@ -76,9 +76,10 @@
           "name": "InGameIntent",
           "slots": [],
           "samples": [
+            "juguemos de nuevo",
             "pregunta",
             "empieza",
-            "si juuemos",
+            "si juguemos",
             "venga",
             "vamos",
             "claro",
@@ -91,21 +92,59 @@
             {
               "name": "year",
               "type": "AMAZON.FOUR_DIGIT_NUMBER"
+            },
+            {
+              "name": "protagonist",
+              "type": "AMAZON.Actor"
+            },
+            {
+              "name": "movie",
+              "type": "AMAZON.Movie"
             }
           ],
           "samples": [
-            "la peli salio en {year}",
-            "salio en {year}",
-            "la pelicula salio en {year}",
+            "en que año salio {movie}"
+          ]
+        },
+        {
+          "name": "AnswerIntent",
+          "slots": [
+            {
+              "name": "year",
+              "type": "AMAZON.FOUR_DIGIT_NUMBER"
+            },
+            {
+              "name": "movie",
+              "type": "AMAZON.Movie"
+            },
+            {
+              "name": "actor",
+              "type": "AMAZON.Actor"
+            }
+          ],
+          "samples": [
+            "se llama {movie}",
+            "se titula {movie}",
+            "por {actor}",
+            "esta protagonizada por {actor}",
+            "en {year}",
             "fue en {year}",
-            "{year}",
+            "fue {actor}",
             "Se estreno en {year}",
-            "En {year}"
+            "Es {movie}",
+            "Es {actor}",
+            "Es {year}",
+            "La respuesta es {movie}",
+            "La respuesta es {actor}",
+            "La respuesta es {year}",
+            "{movie}",
+            "{actor}",
+            "{year}"
           ]
         }
       ],
       "types": []
     }
   },
-  "version": "8"
+  "version": "11"
 }

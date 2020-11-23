@@ -1,6 +1,7 @@
 const Alexa = require('ask-sdk-core');
 
 const LaunchRequestHandler = {
+    //Aqui se selecciona el modo, y no se vuelve a ejecutar.
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest'
         || Alexa.getRequestType(handlerInput.requestEnvelope) === 'GameModeIntent'
@@ -17,35 +18,49 @@ const LaunchRequestHandler = {
 };
 
 const GameModeIntentHandler = {
+    //Este solo introduce el juego y confirma que se quiere jugar, pero de momento no manda el mensaje y entra directamente. Luego lo cambiamos
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
-            && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'InGameIntent')
+            && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'InGameIntent'
+            || Alexa.getIntentName(handlerInput.requestEnvelope) === 'GameModeIntent')
     },
     handle(handlerInput) {
         const speechText = "Has entrado al modo de juego. Te haré 5 preguntas, y veremos cuántas de ellas has logrado acertar. ¿Te animas?";
 
         return handlerInput.responseBuilder
             .speak(speechText)
-            //.reprompt()
-            .getResponse();
+            .getResponse() && InGameIntentHandler.handle(handlerInput);
     }
     
 };
 
 const InGameIntentHandler = {
+    ////////////////////////////////////////////////////////////////////////////
+    ///////Este seria el que se ejecuta hasta que acaben las preguntas///////////
+    ////////////////////////////////////////////////////////////////////////////
     canHandle(handlerInput) {
-        return true;
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'InGameIntent')
     },
     handle(handlerInput) {
+        initialize();
+        const questionText = getQuestion();
+        currentStatus = 'Question';
+        const speakOutput = "Pregunta: " + questionText;
         return handlerInput.responseBuilder
-        .speak("Iniciado InGameIntent")
+        .speak(speakOutput)
+        .reprompt(speakOutput)
         .getResponse();
     }
 }
 
 const AnswerQuestionIntentHandler = {
+    ////////////////////////////////////////////////////////////////
+    //Este seria para la parte donde nosotros preguntamos///////////
+    ///////////////////////////////////////////////////////////////
     canHandle(handlerInput) {
-        return true;
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'AnswerQuestionIntent')
     },
     handle(handlerInput) {
         return handlerInput.responseBuilder
@@ -54,8 +69,52 @@ const AnswerQuestionIntentHandler = {
     }
 }
 
+const AnswerIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'AnswerIntent';
+    },
+    handle(handlerInput) {
+        const AnswerValue = handlerInput.requestEnvelope.request.intent.slots.year.value;   //Aqui de momento puse year, pero haría falta un condicional segun el tipo de dato. Por eso decia lo de questionType.
+        /////////////////////////////////////////////////////////////////
+        //De aqui para abajo es copiado de la plantilla/////////////////
+        ////////////////////////////////////////////////////////////////
+        let speakOutput = '';
+        if (currentStatus === 'Continue') {
+            speakOutput += 'Responde sí o no';
+        }
+        else {
+            if (AnswerValue === currentIndex.year) {
+                speakOutput += 'Respuesta correcta! ... ' + '.';
+                hits++;
+            }
+            else  {
+                speakOutput += 'Respuesta incorrecta, la respuesta correcta es ' +  currentIndex.year+ /*' porque ' + currentIndex.answer + */ '.'; //Esto de momento no lo usamos
+            }
+        }
+        currentIndex = null;
+        speakOutput += ' ... Continuamos? ';
+        currentStatus = 'Continue';
+        
+        if (exit) {
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .getResponse();
+        } 
+        else {
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .reprompt(speakOutput)
+                .getResponse();
+        }
+        ///////////////////////////////////////
+        /////////Hasta aqui///////////////////
+        ////////////////////////////////////
+    }
+};
 
 
+//Todos estos son por defecto, solo cambie los textos y poco mas
 const HelpIntentHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
@@ -71,6 +130,7 @@ const HelpIntentHandler = {
     }
 };
 
+//Todos estos son por defecto, solo cambie los textos y poco mas
 const CancelAndStopIntentHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
@@ -85,18 +145,15 @@ const CancelAndStopIntentHandler = {
             .getResponse();
     }
 };
-/* *
- * FallbackIntent triggers when a customer says something that doesn’t map to any intents in your skill
- * It must also be defined in the language model (if the locale supports it)
- * This handler can be safely added but will be ingnored in locales that do not support it yet 
- * */
+
+//Todos estos son por defecto, solo cambie los textos y poco mas
 const FallbackIntentHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.FallbackIntent';
     },
     handle(handlerInput) {
-        const speakOutput = 'Sorry, I don\'t know about that. Please try again.';
+        const speakOutput = 'Lo siento, no te entendi. Intentalo de nuevo.';
 
         return handlerInput.responseBuilder
             .speak(speakOutput)
@@ -104,6 +161,7 @@ const FallbackIntentHandler = {
             .getResponse();
     }
 };
+
 /* *
  * SessionEndedRequest notifies that a session was ended. This handler will be triggered when a currently open 
  * session is closed for one of the following reasons: 1) The user says "exit" or "quit". 2) The user does not 
@@ -157,7 +215,71 @@ const ErrorHandler = {
             .getResponse();
     }
 };
+//Variables necesarias
+let currentIndex, currentStatus, questionsList, hits, exit, pending, count;
 
+//Esta es la lista de preguntas de las que va seleccionando el programa. Cuando este acabado, se reemplaza esto por la funcion de seleccionar 5 elementos aleatorios del fichero, ya que de aqui se van borrando
+//para evitar preguntas duplicadas.
+function initialize() {
+    questionsList = {
+        '0' : {
+        'id' : '0',
+        'question' : '¿En que año se estrenó matrix?',
+        'title' : 'Matrix',
+        'year' : '1999',
+        'genre' : ['Ciencia ficción', 'Acción'],
+        'protagonists' : ['Keanu Reeves','Laurence Fishburne','Carrie-Anne Moss','Hugo Weaving','Joe Pantoliano','Marcus Chong','Paul Goddard','Gloria Foster']
+    },
+    '1' : {
+        'id' : '1',
+        'question' : '¿En que año se estrenó Regreso al fururo?',
+        'title' : 'Regreso al futuro',
+        'year' : '1985',
+        'genre' : ['Ciencia ficción', 'Aventuras','Comedia'],
+        'protagonists' : ['Michael Fox','Christopher Lloyd','Crispin Glover','Lea Thompson','Thomas Wilson']
+    },
+    '2' : {
+        'id' : '2',
+        'question' : '¿En que año se estrenó Capitana Marvel?',
+        'title' : 'Capitana Marvel',
+        'year' : '2019',
+        'genre' : ['Ciencia ficción', 'Acción','Superhéroes'],
+        'protagonists' : ['Brie Larson','Samuel Jackson','Ben Mendelsohn','Djimon Hounsou','Lee Pace','Lashana Lynch','Gemma Chan','Clark Gregg','Annette Bening','Jude Law']
+    }
+    
+    }
+}
+
+function getRandomItem(lst) {
+    if (Object.keys(lst).length === 0) {
+        return null;
+    }
+    currentIndex =  lst[Object.keys(lst)[Math.floor(Math.random()*Object.keys(lst).length)]];
+    return currentIndex;
+}
+
+//Esto también pienso cambiarlo
+function getQuestion(random = true) {
+    let speechText = '';
+    if (random) {
+        speechText = getRandomItem(questionsList);
+        if (currentIndex === null && pending === null) {
+            const speakOutput = 'Ya respondiste todas las preguntas! ... Has conseguido acertar ' + hits + ' de ' + count + ' preguntas.';
+            exit = true;
+            return speakOutput;
+        }
+        else if (currentIndex === null) {
+            return 'Ya no te quedan más preguntas nuevas, pero sí te queda una pendiente, vamos con ella. ... ' + speechText.question + '? ';
+        }
+        delete questionsList[currentIndex.id];
+        count++;
+    }
+    else {
+        speechText = currentIndex;
+    }
+    const speakOutput =  speechText.question + '? ';
+    return speakOutput
+}
 /**
  * This handler acts as the entry point for your skill, routing all request and response
  * payloads to the handlers above. Make sure any new handlers or interceptors you've
@@ -169,6 +291,7 @@ exports.handler = Alexa.SkillBuilders.custom()
         GameModeIntentHandler,
         InGameIntentHandler,
         AnswerQuestionIntentHandler,
+        AnswerIntentHandler,
         HelpIntentHandler,
         CancelAndStopIntentHandler,
         FallbackIntentHandler,
