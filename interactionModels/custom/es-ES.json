@@ -1,0 +1,111 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "trivial cinematografico",
+      "intents": [
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "HelloWorldIntent",
+          "slots": [],
+          "samples": [
+            "hola",
+            "como estás",
+            "di hola mundo",
+            "di hola",
+            "hola mundo"
+          ]
+        },
+        {
+          "name": "AMAZON.NavigateHomeIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.NextIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.NoIntent",
+          "samples": []
+        },
+        {
+          "name": "ClueIntent",
+          "slots": [],
+          "samples": [
+            "dame una pista por favor",
+            "una pista por favor",
+            "una pista",
+            "pista",
+            "ni idea",
+            "no se",
+            "ayudame",
+            "lo desconozco",
+            "no tengo idea",
+            "ayudame alexa",
+            "dame una pista",
+            "No lo sé"
+          ]
+        },
+        {
+          "name": "GameModeIntent",
+          "slots": [],
+          "samples": [
+            "preguntame tu alexa",
+            "quiero que juguemos",
+            "quiero que me preguntes tu",
+            "hazlas tu",
+            "preguntame",
+            "juguemos",
+            "hazmela tú",
+            "preguntame tú",
+            "hazme una pregunta",
+            "quiero jugar"
+          ]
+        },
+        {
+          "name": "InGameIntent",
+          "slots": [],
+          "samples": [
+            "pregunta",
+            "empieza",
+            "si juuemos",
+            "venga",
+            "vamos",
+            "claro",
+            "si"
+          ]
+        },
+        {
+          "name": "AnswerQuestionIntent",
+          "slots": [
+            {
+              "name": "year",
+              "type": "AMAZON.FOUR_DIGIT_NUMBER"
+            }
+          ],
+          "samples": [
+            "la peli salio en {year}",
+            "salio en {year}",
+            "la pelicula salio en {year}",
+            "fue en {year}",
+            "{year}",
+            "Se estreno en {year}",
+            "En {year}"
+          ]
+        }
+      ],
+      "types": []
+    }
+  },
+  "version": "8"
+}
