@@ -147,10 +147,46 @@
             "{actor}",
             "{year}"
           ]
+        },
+        {
+          "name": "StoreToListIntent",
+          "slots": [
+            {
+              "name": "movie",
+              "type": "AMAZON.Movie"
+            }
+          ],
+          "samples": [
+            "Guardar {movie}",
+            "Añadir {movie} ",
+            "Guardar {movie} en mi lista"
+          ]
+        },
+        {
+          "name": "MyListIntent",
+          "slots": [],
+          "samples": [
+            "que peli puedo ver",
+            "mi lista de pelis",
+            "Que peliculas tengo guardado"
+          ]
+        },
+        {
+          "name": "DeleteFromListIntent",
+          "slots": [
+            {
+              "name": "movie",
+              "type": "AMAZON.Movie"
+            }
+          ],
+          "samples": [
+            "Borrar {movie} de mi lista",
+            "Borrar {movie}"
+          ]
         }
       ],
       "types": []
     }
   },
-  "version": "2"
+  "version": "4"
 }
