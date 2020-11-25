@@ -54,21 +54,156 @@ const InGameIntentHandler = {
     }
 }
 
-const AnswerQuestionIntentHandler = {
-    ////////////////////////////////////////////////////////////////
-    //Este seria para la parte donde nosotros preguntamos///////////
-    ///////////////////////////////////////////////////////////////
+//Completado y funcionando. Hace una petición para obtener la fecha de estreno y reformatea la respuesta.
+const AnswerDateQuestionIntentHandler = {
     canHandle(handlerInput) {
-        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
-            && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'AnswerQuestionIntent')
-    },
-    handle(handlerInput) {
-        return handlerInput.responseBuilder
-        .speak("Iniciado AnswerQuestionIntent")
-        .getResponse();
-    }
+    return handlerInput.requestEnvelope.request.type === 'LaunchRequest'
+      || (handlerInput.requestEnvelope.request.type === 'IntentRequest'
+      && handlerInput.requestEnvelope.request.intent.name === 'AnswerDateQuestionIntent');
+  },
+  
+  async handle(handlerInput) {
+    let outputSpeech = 'This is the default message.';
+    let AnswerValue = '';
+    AnswerValue = handlerInput.requestEnvelope.request.intent.slots.movie.value;
+    AnswerValue= AnswerValue.replace(/ /g,"+");
+    let movieID = ''
+         
+         await getRemoteData('https://api.themoviedb.org/3/search/movie?api_key=5e03a0a0072d0569232bf72951b90803&query=' + AnswerValue)
+      .then((response) => {
+        const data = JSON.parse(response);
+        let releaseDate = data.results[0].release_date;
+        let paramDate = releaseDate.split("-");
+        var meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+        AnswerValue= AnswerValue.replace("+",/ /g);
+        outputSpeech = `La pelicula ${AnswerValue} se estrenó el ${paramDate[2]} de ${meses[paramDate[1]-1]} del año ${paramDate[0]}. `;
+        movieID = data.results[0].id;
+      })
+      .catch((err) => {
+        console.log(`ERROR: ${err.message}`);
+         outputSpeech = "No he podido encontrar la respuesta a esa pregunta. Por favor, inténtalo en otra ocasion.";
+      });
+          
+    return handlerInput.responseBuilder
+      .speak(outputSpeech)
+      .reprompt(outputSpeech + "Si quieres, puedes hacerme otra pregunta o decirme quiero jugar.")
+      .getResponse();
+  },
 }
 
+//Completado y funcionando. Hace dos peticiones para obtener la sinopsis de una pelicula.
+const AnswerOverviewQuestionIntentHandler = {
+    canHandle(handlerInput) {
+    return handlerInput.requestEnvelope.request.type === 'LaunchRequest'
+      || (handlerInput.requestEnvelope.request.type === 'IntentRequest'
+      && handlerInput.requestEnvelope.request.intent.name === 'AnswerOverviewQuestionIntent');
+  },
+  
+  async handle(handlerInput) {
+    let outputSpeech = 'This is the default message.';
+    let AnswerValue = '';
+    AnswerValue = handlerInput.requestEnvelope.request.intent.slots.movie.value;
+    AnswerValue= AnswerValue.replace(/ /g,"+");
+    let movieID = ''
+         
+      await getRemoteData('https://api.themoviedb.org/3/search/movie?api_key=5e03a0a0072d0569232bf72951b90803&query=' + AnswerValue)
+      .then((response) => {
+        const data = JSON.parse(response);
+        movieID = data.results[0].id;
+      })
+      .catch((err) => {
+        console.log(`ERROR: ${err.message}`);
+         outputSpeech = "No he podido encontrar la respuesta a esa pregunta. Por favor, inténtalo en otra ocasion.";
+      });
+      
+      await getRemoteData('https://api.themoviedb.org/3/movie/' + movieID + '?api_key=5e03a0a0072d0569232bf72951b90803&language=es-ES')
+      .then((response) => {
+        const data = JSON.parse(response);
+        let view = data.overview;
+        outputSpeech = view;
+      })
+      .catch((err) => {
+        console.log(`ERROR: ${err.message}`);
+         outputSpeech = "No he podido encontrar la respuesta a esa pregunta. Por favor, inténtalo en otra ocasion.";
+      });
+          
+    return handlerInput.responseBuilder
+      .speak(outputSpeech)
+      .reprompt(outputSpeech + "Si quieres, puedes hacerme otra pregunta o decirme quiero jugar.")
+      .getResponse();
+  },
+}
+
+//En proceso de debugging. Hace dos peticiones para obtener el listado de generos a los que pertenece una pelicula.
+const AnswerGenreQuestionIntentHandler = {
+    canHandle(handlerInput) {
+    return handlerInput.requestEnvelope.request.type === 'LaunchRequest'
+      || (handlerInput.requestEnvelope.request.type === 'IntentRequest'
+      && handlerInput.requestEnvelope.request.intent.name === 'AnswerGenreQuestionIntent');
+  },
+  
+  async handle(handlerInput) {
+    let outputSpeech = 'This is the default message.';
+    let AnswerValue = '';
+    AnswerValue = handlerInput.requestEnvelope.request.intent.slots.movie.value;
+    AnswerValue= AnswerValue.replace(/ /g,"+");
+    let movieGenres = [], movieGenresIDs = [];
+         
+      await getRemoteData('https://api.themoviedb.org/3/search/movie?api_key=5e03a0a0072d0569232bf72951b90803&query=' + AnswerValue)
+      .then((response) => {
+        const data = JSON.parse(response);
+       movieGenresIDs = data.genre_ids;
+      })
+      .catch((err) => {
+        console.log(`ERROR: ${err.message}`);
+         outputSpeech = "No he podido encontrar la respuesta a esa pregunta. Por favor, inténtalo en otra ocasion.";
+      });
+      
+      await getRemoteData('https://api.themoviedb.org/3/genre/movie/list?api_key=5e03a0a0072d0569232bf72951b90803&language=es-ES')
+      .then((response) => {
+        const data = JSON.parse(response);
+        /*for (var i = 0; i < movieGenresIDs.length; i++){
+            for(var j = 0; j < data.genres.length; j++){
+                if(movieGenresIDs[i] === data.genres[j][0] ){
+                    movieGenres.add(data.genres[j][1]);
+                }
+            }
+        }
+        outputSpeech = '';
+        if(movieGenres.length === 1){
+            outputSpeech = "La pelicula es del género " + movieGenres[0] + ".";
+        } else {
+            for (let i = 0; i < movieGenres.length; i++) {
+          if (i === 0) {
+            // first record
+            outputSpeech = `Los géneros de la película son: : ${movieGenres[i]}, `;
+          } else if (i === data.people.length - 1) {
+            // last record
+            outputSpeech = `${outputSpeech}y ${movieGenres[i]}.`;
+          } else {
+            // middle record(s)
+            outputSpeech = `${outputSpeech + movieGenres[i]}, `;
+          }
+        }
+        }*/
+      })
+      .catch((err) => {
+        console.log(`ERROR: ${err.message}`);
+         outputSpeech = "No he podido encontrar la respuesta a esa pregunta. Por favor, inténtalo en otra ocasion.";
+      });
+          
+    return handlerInput.responseBuilder
+      .speak(outputSpeech)
+      .reprompt(outputSpeech + "Si quieres, puedes hacerme otra pregunta o decirme quiero jugar.")
+      .getResponse();
+  },
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//Aquí iria AnswerQuestionIntentHandler, pero se eliminó para separarse en los diferentes temas de preguntas//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//Funcionando. Falta arreglar el error que se genera cuando se usa un intent no definido, ya que llama a este metodo aunque no debería. No lo cambies de momento, creo saber como arreglarlo
 const AnswerIntentHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
@@ -305,7 +440,7 @@ function getRandomItem(lst) {
     return lst[Object.keys(lst)[Math.floor(Math.random()*Object.keys(lst).length)]];
 }
 
-//Esto también pienso cambiarlo
+//Completado y funcionando. Elige una pregunta aleatoria
 function getQuestion(random = true) {
     if (random) {
         currentIndex = getRandomItem(datalist);
@@ -324,6 +459,22 @@ function getQuestion(random = true) {
     const speakOutput =  currentquest.quest + currentIndex.title + '? ';
     return speakOutput
 }
+
+//Completado y funcionando. Encargado de la peticion GET a la API y del control de los codigos retornados.
+const getRemoteData = (url) => new Promise((resolve, reject) => {
+  const client = url.startsWith('https') ? require('https') : require('http');
+  const request = client.get(url, (response) => {
+    if (response.statusCode < 200 || response.statusCode > 299) {
+      reject(new Error(`Failed with status code: ${response.statusCode}`));
+    }
+    const body = [];
+    response.on('data', (chunk) => body.push(chunk));
+    response.on('end', () => resolve(body.join('')));
+  });
+  request.on('error', (err) => reject(err));
+});
+
+
 /**
  * This handler acts as the entry point for your skill, routing all request and response
  * payloads to the handlers above. Make sure any new handlers or interceptors you've
@@ -334,7 +485,9 @@ exports.handler = Alexa.SkillBuilders.custom()
         LaunchRequestHandler,
         GameModeIntentHandler,
         InGameIntentHandler,
-        AnswerQuestionIntentHandler,
+        AnswerGenreQuestionIntentHandler,
+        AnswerDateQuestionIntentHandler,
+        AnswerOverviewQuestionIntentHandler,
         AnswerIntentHandler,
         HelpIntentHandler,
         CancelAndStopIntentHandler,
