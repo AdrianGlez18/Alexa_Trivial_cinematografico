@@ -1,7 +1,7 @@
 {
   "interactionModel": {
     "languageModel": {
-      "invocationName": "change me",
+      "invocationName": "trivial cinematografico",
       "intents": [
         {
           "name": "AMAZON.CancelIntent",
@@ -103,7 +103,7 @@
             }
           ],
           "samples": [
-            "en que año salio {movie}"
+            "temporal antes de eliminar {movie}"
           ]
         },
         {
@@ -149,6 +149,65 @@
           ]
         },
         {
+          "name": "AnswerDateQuestionIntent",
+          "slots": [
+            {
+              "name": "movie",
+              "type": "AMAZON.Movie"
+            }
+          ],
+          "samples": [
+            "en que año se estreno {movie}",
+            "en que año salio {movie}",
+            "cuando sale {movie}",
+            "estreno de {movie}",
+            "fecha de estreno de {movie}",
+            "cuando se estreno {movie}",
+            "cuando salio {movie}"
+          ]
+        },
+        {
+          "name": "AnswerGenreQuestionIntent",
+          "slots": [
+            {
+              "name": "movie",
+              "type": "AMAZON.Movie"
+            }
+          ],
+          "samples": [
+            "de que es {movie}",
+            "a que genero pertenece la pelicula {movie}",
+            "{movie} es de que genero",
+            "la pelicula {movie} de que genero es",
+            "genero de la pelicula {movie}",
+            "de que genero es la pelicula {movie}",
+            "genero de {movie}",
+            "de que genero es {movie}",
+            "de que tipo es {movie}",
+            "a que genero pertenece {movie}"
+          ]
+        },
+        {
+          "name": "AnswerOverviewQuestionIntent",
+          "slots": [
+            {
+              "name": "movie",
+              "type": "AMAZON.Movie"
+            }
+          ],
+          "samples": [
+            "dime algo sobre {movie}",
+            "sinopsis de {movie}",
+            "dame la sinopsis de {movie}",
+            "dime de que trata {movie}",
+            "dime de que va {movie}",
+            "sobre que trata {movie}",
+            "de que trata {movie}",
+            "sobre que va {movie}",
+            "de que va {movie}"
+          ]
+        },
+        {
           "name": "StoreToListIntent",
           "slots": [
             {
@@ -188,5 +247,5 @@
       "types": []
     }
   },
-  "version": "4"
+  "version": "16"
 }
