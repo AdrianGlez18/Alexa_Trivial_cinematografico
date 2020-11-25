@@ -1,5 +1,4 @@
 const Alexa = require('ask-sdk-core');
-const persistenceAdapter = require('ask-sdk-s3-persistence-adapter');
 
 const LaunchRequestHandler = {
     //Aqui se selecciona el modo, y no se vuelve a ejecutar.
@@ -9,7 +8,6 @@ const LaunchRequestHandler = {
         || Alexa.getRequestType(handlerInput.requestEnvelope) === 'AnswerQuestionIntent';
     },
     handle(handlerInput) {
-        initialize();
         const speakOutput = 'Bienvenido a trivial cinematografico. Puedes hacerme preguntas sobre peliculas, o puedo ponerte a prueba haciéndotelas yo. Para empezar, hazme una pregunta o dime quiero jugar.';
 
         return handlerInput.responseBuilder
@@ -45,6 +43,7 @@ const InGameIntentHandler = {
             && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'InGameIntent')
     },
     handle(handlerInput) {
+        initialize();
         const questionText = getQuestion();
         currentStatus = 'Question';
         const speakOutput = "Pregunta: " + questionText;
@@ -284,117 +283,6 @@ const AnswerIntentHandler = {
     }
 };
 
-const StoreToListIntentHandler = {
-    ////////////////////////////////////////////////////////////////
-    // Esto es para guarda pelis a memoria persistente   ///////////
-    ///////////////////////////////////////////////////////////////
-    canHandle(handlerInput) {
-        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
-            && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'StoreToListIntent')
-    },
-    async handle(handlerInput) {
-        //loading persistent atributes
-        let {attributesManager} = handlerInput;
-        let persistentAttributes = await attributesManager.getPersistentAttributes() || {};
-        
-        //store data of all movies
-        let mov = handlerInput.requestEnvelope.request.intent.slots.movie.value;
-        if (persistentAttributes.hasOwnProperty('movies')) {
-            if (!persistentAttributes.movies.includes(mov)) {
-                persistentAttributes.movies.push(mov)
-            }
-        } else {
-            persistentAttributes.movies = []
-            persistentAttributes.movies.push(mov)
-        }
-        
-        attributesManager.setPersistentAttributes(persistentAttributes);
-            
-        await attributesManager.savePersistentAttributes();
-        
-        let speakOutput = mov+" Añadido a la lista"
-        return handlerInput.responseBuilder
-        .speak(speakOutput)
-        .reprompt(speakOutput)
-        .getResponse();
-    }
-}
-
-const MyListIntentHandler = {
-    ////////////////////////////////////////////////////////////////
-    // Esto es para ver los pelis guardados             ///////////
-    ///////////////////////////////////////////////////////////////
-    canHandle(handlerInput) {
-        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
-            && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'MyListIntent')
-    },
-    async handle(handlerInput) {
-        //loading persistent atributes
-        let {attributesManager} = handlerInput;
-        let persistentAttributes = await attributesManager.getPersistentAttributes() || {};
-        
-        //retrieve data of all movies
-        let speakOutput = ''
-        if (!persistentAttributes.hasOwnProperty('movies')) {
-            speakOutput = 'Tu lista de peliculas esta vacía'
-        } else {
-            if (persistentAttributes.movies.length <= 0) {
-                speakOutput = 'Tu lista de peliculas esta vacía'
-            } else {
-                speakOutput = 'Tienes las siguientes pelis guardados: '
-                for (var i = 0; i < persistentAttributes.movies.length; i++) {
-                    speakOutput += persistentAttributes.movies[i] + ", ";
-                }
-            }
-        }
-        
-        await attributesManager.savePersistentAttributes();
-        
-        return handlerInput.responseBuilder
-        .speak(speakOutput)
-        .reprompt(speakOutput)
-        .getResponse();
-    }
-}
-
-const DeleteFromListIntentHandler = {
-    ////////////////////////////////////////////////////////////////
-    // Esto es para borrar pelis de memoria persistente   ///////////
-    ///////////////////////////////////////////////////////////////
-    canHandle(handlerInput) {
-        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
-            && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'DeleteFromListIntent')
-    },
-    async handle(handlerInput) {
-        //loading persistent atributes
-        let {attributesManager} = handlerInput;
-        let persistentAttributes = await attributesManager.getPersistentAttributes() || {};
-        
-        //store data of all movies
-        let mov = handlerInput.requestEnvelope.request.intent.slots.movie.value;
-        let speakOutput = ''
-        if (persistentAttributes.hasOwnProperty('movies')) {
-            if (persistentAttributes.movies.includes(mov)) {
-                persistentAttributes.movies.splice(mov,1)
-                speakOutput = mov + ' borrado de la lista.'
-            }
-        }
-        
-        if (speakOutput === '') {
-            speakOutput = mov + ' no esta en la lista'
-        }
-        
-        attributesManager.setPersistentAttributes(persistentAttributes);
-            
-        await attributesManager.savePersistentAttributes();
-        
-        return handlerInput.responseBuilder
-        .speak(speakOutput)
-        .reprompt(speakOutput)
-        .getResponse();
-    }
-}
-
 
 //Todos estos son por defecto, solo cambie los textos y poco mas
 const HelpIntentHandler = {
@@ -498,7 +386,7 @@ const ErrorHandler = {
     }
 };
 //Variables necesarias
-let currentIndex,currentquest, currentStatus, questionsList, datalist, hits, exit, count;
+let currentIndex,currentquest, currentStatus, questionsList, datalist, hits, exit, pending, count;
 
 //Esta es la lista de preguntas de las que va seleccionando el programa. Cuando este acabado, se reemplaza esto por la funcion de seleccionar 5 elementos aleatorios del fichero, ya que de aqui se van borrando
 //para evitar preguntas duplicadas.
@@ -543,12 +431,6 @@ function initialize() {
             'protagonist' : ['brie larson','samuel jackson','ben mendelsohn','djimon hounsou','lee pace','lashana lynch','gemma chan','clark gregg','annette bening','jude law']
         }
     };
-    currentIndex = null;
-    currentquest = null;
-    count = 0;
-    hits = 0;
-    currentStatus = null;
-    exit = false;
 }
 
 function getRandomItem(lst) {
@@ -563,10 +445,13 @@ function getQuestion(random = true) {
     if (random) {
         currentIndex = getRandomItem(datalist);
         currentquest = getRandomItem(questionsList);
-        if (currentIndex === null || count >= 5) {
+        if (currentIndex === null && pending === null) {
             const speakOutput = 'Ya respondiste todas las preguntas! ... Has conseguido acertar ' + hits + ' de ' + count + ' preguntas.';
             exit = true;
             return speakOutput;
+        }
+        else if (currentIndex === null) {
+            return 'Ya no te quedan más preguntas nuevas, pero sí te queda una pendiente, vamos con ella. ... ' + currentquest.quest + currentIndex.title + '? ';
         }
         delete datalist[currentIndex.id];
         count++;
@@ -596,9 +481,6 @@ const getRemoteData = (url) => new Promise((resolve, reject) => {
  * defined are included below. The order matters - they're processed top to bottom 
  * */
 exports.handler = Alexa.SkillBuilders.custom()
-    .withPersistenceAdapter(
-        new persistenceAdapter.S3PersistenceAdapter({bucketName:process.env.S3_PERSISTENCE_BUCKET})
-    )
     .addRequestHandlers(
         LaunchRequestHandler,
         GameModeIntentHandler,
@@ -607,9 +489,6 @@ exports.handler = Alexa.SkillBuilders.custom()
         AnswerDateQuestionIntentHandler,
         AnswerOverviewQuestionIntentHandler,
         AnswerIntentHandler,
-        StoreToListIntentHandler,
-        MyListIntentHandler,
-        DeleteFromListIntentHandler,
         HelpIntentHandler,
         CancelAndStopIntentHandler,
         FallbackIntentHandler,
