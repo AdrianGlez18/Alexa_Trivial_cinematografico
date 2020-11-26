@@ -1,7 +1,7 @@
 {
   "interactionModel": {
     "languageModel": {
-      "invocationName": "trivial cinematografico",
+      "invocationName": "filmoteca de informatica",
       "intents": [
         {
           "name": "AMAZON.CancelIntent",
@@ -37,24 +37,6 @@
         {
           "name": "AMAZON.NoIntent",
           "samples": []
-        },
-        {
-          "name": "ClueIntent",
-          "slots": [],
-          "samples": [
-            "dame una pista por favor",
-            "una pista por favor",
-            "una pista",
-            "pista",
-            "ni idea",
-            "no se",
-            "ayudame",
-            "lo desconozco",
-            "no tengo idea",
-            "ayudame alexa",
-            "dame una pista",
-            "No lo sé"
-          ]
         },
         {
           "name": "GameModeIntent",
@@ -207,7 +189,7 @@
             "de que va {movie}"
           ]
         },
-	{
+        {
           "name": "StoreToListIntent",
           "slots": [
             {
@@ -242,10 +224,17 @@
             "Borrar {movie} de mi lista",
             "Borrar {movie}"
           ]
+        },
+        {
+          "name": "ExceptionIntent",
+          "slots": [],
+          "samples": [
+            "excepcion detectada"
+          ]
         }
       ],
       "types": []
     }
   },
-  "version": "16"
+  "version": "4"
 }
