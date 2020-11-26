@@ -26,34 +26,113 @@ const GameModeIntentHandler = {
             && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'InGameIntent'
             || Alexa.getIntentName(handlerInput.requestEnvelope) === 'GameModeIntent')
     },
-    handle(handlerInput) {
-        const speechText = "Has entrado al modo de juego. Te haré 5 preguntas, y veremos cuántas de ellas has logrado acertar. ¿Te animas?";
+    /*handle(handlerInput) {
+        const speechText = "Has entrado al modo de juego. Te haré 3 preguntas, y veremos cuántas de ellas has logrado acertar. ¿Te animas?";
 
         return handlerInput.responseBuilder
             .speak(speechText)
             .getResponse() && InGameIntentHandler.handle(handlerInput);
-    }
+    }*/
     
-};
-
-const InGameIntentHandler = {
-    ////////////////////////////////////////////////////////////////////////////
-    ///////Este seria el que se ejecuta hasta que acaben las preguntas///////////
-    ////////////////////////////////////////////////////////////////////////////
-    canHandle(handlerInput) {
-        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
-            && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'InGameIntent')
-    },
     handle(handlerInput) {
+        if(firstPlay === 0){
+            const speechText = "Has entrado al modo de juego. Te haré 3 preguntas, y veremos cuántas de ellas has logrado acertar. ¿Te animas?";
+            firstPlay++;
+            return handlerInput.responseBuilder
+                .speak(speechText)
+                .reprompt(speechText)
+                .getResponse();
+        }
         const questionText = getQuestion();
         currentStatus = 'Question';
-        const speakOutput = "Pregunta: " + questionText;
+        const speakOutput = questionText;
         return handlerInput.responseBuilder
         .speak(speakOutput)
         .reprompt(speakOutput)
         .getResponse();
     }
-}
+    
+};
+
+//Funcionando. Falta arreglar el error que se genera cuando se usa un intent no definido, ya que llama a este metodo aunque no debería. No lo cambies de momento, creo saber como arreglarlo
+const AnswerIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'AnswerIntent';
+    },
+    handle(handlerInput) {
+        //const AnswerValue = handlerInput.requestEnvelope.request.intent.slots.year.value;   //Aqui de momento puse year, pero haría falta un condicional segun el tipo de dato. Por eso decia lo de questionType.
+        let AnswerValue = ''
+        if (currentquest.invoce === 'year') {
+         AnswerValue = handlerInput.requestEnvelope.request.intent.slots.year.value;
+          }
+          else if (currentquest.invoce === 'genre') {
+             AnswerValue = handlerInput.requestEnvelope.request.intent.slots.genre.value;
+          }
+          else {
+             AnswerValue = handlerInput.requestEnvelope.request.intent.slots.actor.value;
+          }
+        /////////////////////////////////////////////////////////////////
+        //De aqui para abajo es copiado de la plantilla/////////////////
+        ////////////////////////////////////////////////////////////////
+        let speakOutput = '';
+        if (currentStatus === 'Continue') {
+            speakOutput += 'Responde sí o no';
+        }
+        else {
+            if (currentquest.invoce === 'year') {
+                if (AnswerValue === currentIndex.year) {
+                    speakOutput += 'Respuesta correcta! ... ' + '.';
+                    hits++;
+                }
+                else  {
+                    speakOutput += 'Respuesta incorrecta, la respuesta correcta es ' +  currentIndex.year+ /*' porque ' + currentIndex.answer + */ '.'; //Esto de momento no lo usamos
+                }
+          }
+          else {
+              //speakOutput += '         ' + AnswerValue + '           ';
+                if (currentIndex[currentquest.invoce].includes(AnswerValue)) {
+                    let cvpfarr = ''
+                    for (var i = 0; i < currentIndex[currentquest.invoce].length; i++) {
+                        if (currentIndex[currentquest.invoce][i] !== AnswerValue) {
+                            cvpfarr += currentIndex[currentquest.invoce][i]+' , '
+                        }
+                    }
+                    speakOutput += 'Respuesta correcta! ...  otras respuestas hubieran sido: ' + cvpfarr + '.';
+                    hits++;
+                }
+                else  {
+                    let cvpfarr = ''
+                    for (var j = 0; j < currentIndex[currentquest.invoce].length; j++) {
+                        cvpfarr += currentIndex[currentquest.invoce][j]
+                        if (j < currentIndex[currentquest.invoce].length-1) {
+                            cvpfarr += ' o '
+                        }
+                    }
+                    speakOutput += 'Respuesta incorrecta, la respuesta seria '+ cvpfarr +'.'; //Esto de momento no lo usamos
+                }
+          }
+        }
+        currentIndex = null;
+        speakOutput += ' ... Continuamos? ';
+        currentStatus = 'Continue';
+        
+        if (exit) {
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .getResponse();
+        } 
+        else {
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .reprompt(speakOutput)
+                .getResponse();
+        }
+        ///////////////////////////////////////
+        /////////Hasta aqui///////////////////
+        ////////////////////////////////////
+    }
+};
 
 //Completado y funcionando. Hace una petición para obtener la fecha de estreno y reformatea la respuesta.
 const AnswerDateQuestionIntentHandler = {
@@ -135,7 +214,7 @@ const AnswerOverviewQuestionIntentHandler = {
   },
 }
 
-//En proceso de debugging. Hace dos peticiones para obtener el listado de generos a los que pertenece una pelicula.
+//Completado y funcionando. Hace dos peticiones para obtener el listado de generos a los que pertenece una pelicula.
 const AnswerGenreQuestionIntentHandler = {
     canHandle(handlerInput) {
     return handlerInput.requestEnvelope.request.type === 'LaunchRequest'
@@ -148,50 +227,40 @@ const AnswerGenreQuestionIntentHandler = {
     let AnswerValue = '';
     AnswerValue = handlerInput.requestEnvelope.request.intent.slots.movie.value;
     AnswerValue= AnswerValue.replace(/ /g,"+");
-    let movieGenres = [], movieGenresIDs = [];
+    let movieID = '', movieTitle = '';
+    let genreArray = [];
          
       await getRemoteData('https://api.themoviedb.org/3/search/movie?api_key=5e03a0a0072d0569232bf72951b90803&query=' + AnswerValue)
       .then((response) => {
         const data = JSON.parse(response);
-       movieGenresIDs = data.genre_ids;
+        movieID = data.results[0].id;
       })
       .catch((err) => {
         console.log(`ERROR: ${err.message}`);
          outputSpeech = "No he podido encontrar la respuesta a esa pregunta. Por favor, inténtalo en otra ocasion.";
       });
       
-      await getRemoteData('https://api.themoviedb.org/3/genre/movie/list?api_key=5e03a0a0072d0569232bf72951b90803&language=es-ES')
+      await getRemoteData('https://api.themoviedb.org/3/movie/' + movieID + '?api_key=5e03a0a0072d0569232bf72951b90803&language=es-ES')
       .then((response) => {
-        const data = JSON.parse(response);
-        /*for (var i = 0; i < movieGenresIDs.length; i++){
-            for(var j = 0; j < data.genres.length; j++){
-                if(movieGenresIDs[i] === data.genres[j][0] ){
-                    movieGenres.add(data.genres[j][1]);
-                }
-            }
+        const genreData = JSON.parse(response);
+        let genreArray = genreData.genres;
+        movieTitle = genreData.title;
+        outputSpeech = movieTitle + ' pertenece a los siguientes géneros: ';
+
+        if(genreArray.length > 1) {
+            genreArray.forEach(item => {
+                outputSpeech += item.name + ',';
+            })
         }
-        outputSpeech = '';
-        if(movieGenres.length === 1){
-            outputSpeech = "La pelicula es del género " + movieGenres[0] + ".";
-        } else {
-            for (let i = 0; i < movieGenres.length; i++) {
-          if (i === 0) {
-            // first record
-            outputSpeech = `Los géneros de la película son: : ${movieGenres[i]}, `;
-          } else if (i === data.people.length - 1) {
-            // last record
-            outputSpeech = `${outputSpeech}y ${movieGenres[i]}.`;
-          } else {
-            // middle record(s)
-            outputSpeech = `${outputSpeech + movieGenres[i]}, `;
-          }
+        else {
+            outputSpeech = 'La pelicula es de ' + genreArray[0].name + '.';
         }
-        }*/
       })
       .catch((err) => {
         console.log(`ERROR: ${err.message}`);
          outputSpeech = "No he podido encontrar la respuesta a esa pregunta. Por favor, inténtalo en otra ocasion.";
       });
+          
           
     return handlerInput.responseBuilder
       .speak(outputSpeech)
@@ -199,90 +268,6 @@ const AnswerGenreQuestionIntentHandler = {
       .getResponse();
   },
 }
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//Aquí iria AnswerQuestionIntentHandler, pero se eliminó para separarse en los diferentes temas de preguntas//
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//Funcionando. Falta arreglar el error que se genera cuando se usa un intent no definido, ya que llama a este metodo aunque no debería. No lo cambies de momento, creo saber como arreglarlo
-const AnswerIntentHandler = {
-    canHandle(handlerInput) {
-        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
-            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'AnswerIntent';
-    },
-    handle(handlerInput) {
-        //const AnswerValue = handlerInput.requestEnvelope.request.intent.slots.year.value;   //Aqui de momento puse year, pero haría falta un condicional segun el tipo de dato. Por eso decia lo de questionType.
-        let AnswerValue = ''
-        if (currentquest.invoce === 'year') {
-         AnswerValue = handlerInput.requestEnvelope.request.intent.slots.year.value;
-          }
-          else if (currentquest.invoce === 'genre') {
-             AnswerValue = handlerInput.requestEnvelope.request.intent.slots.genre.value;
-          }
-          else {
-             AnswerValue = handlerInput.requestEnvelope.request.intent.slots.actor.value;
-          }
-        /////////////////////////////////////////////////////////////////
-        //De aqui para abajo es copiado de la plantilla/////////////////
-        ////////////////////////////////////////////////////////////////
-        let speakOutput = '';
-        if (currentStatus === 'Continue') {
-            speakOutput += 'Responde sí o no';
-        }
-        else {
-            if (currentquest.invoce === 'year') {
-                if (AnswerValue === currentIndex.year) {
-                    speakOutput += 'Respuesta correcta! ... ' + '.';
-                    hits++;
-                }
-                else  {
-                    speakOutput += 'Respuesta incorrecta, la respuesta correcta es ' +  currentIndex.year+ /*' porque ' + currentIndex.answer + */ '.'; //Esto de momento no lo usamos
-                }
-          }
-          else {
-              //speakOutput += '         ' + AnswerValue + '           ';
-                if (currentIndex[currentquest.invoce].includes(AnswerValue)) {
-                    let cvpfarr = ''
-                    for (var i = 0; i < currentIndex[currentquest.invoce].length; i++) {
-                        if (currentIndex[currentquest.invoce][i] !== AnswerValue) {
-                            cvpfarr += currentIndex[currentquest.invoce][i]+' , '
-                        }
-                    }
-                    speakOutput += 'Respuesta correcta! ...  otras respuestas hubieran sido: ' + cvpfarr + '.';
-                    hits++;
-                }
-                else  {
-                    let cvpfarr = ''
-                    for (var j = 0; j < currentIndex[currentquest.invoce].length; j++) {
-                        cvpfarr += currentIndex[currentquest.invoce][j]
-                        if (j < currentIndex[currentquest.invoce].length-1) {
-                            cvpfarr += ' o '
-                        }
-                    }
-                    speakOutput += 'Respuesta incorrecta, la respuesta seria '+ cvpfarr +'.'; //Esto de momento no lo usamos
-                }
-          }
-        }
-        currentIndex = null;
-        speakOutput += ' ... Continuamos? ';
-        currentStatus = 'Continue';
-        
-        if (exit) {
-            return handlerInput.responseBuilder
-                .speak(speakOutput)
-                .getResponse();
-        } 
-        else {
-            return handlerInput.responseBuilder
-                .speak(speakOutput)
-                .reprompt(speakOutput)
-                .getResponse();
-        }
-        ///////////////////////////////////////
-        /////////Hasta aqui///////////////////
-        ////////////////////////////////////
-    }
-};
 
 const StoreToListIntentHandler = {
     ////////////////////////////////////////////////////////////////
@@ -395,7 +380,6 @@ const DeleteFromListIntentHandler = {
     }
 }
 
-
 //Todos estos son por defecto, solo cambie los textos y poco mas
 const HelpIntentHandler = {
     canHandle(handlerInput) {
@@ -412,18 +396,32 @@ const HelpIntentHandler = {
     }
 };
 
-//Todos estos son por defecto, solo cambie los textos y poco mas
+//Añadido el NoIntent para que se cancele al negarse a continuar
 const CancelAndStopIntentHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
             && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.CancelIntent'
-                || Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.StopIntent');
+                || Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.StopIntent'
+                || Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.NoIntent');
     },
     handle(handlerInput) {
         const speakOutput = 'Gracias por utilizar trivial cinematográfico, una skill desarrollada por Adrian y Thaddeus. Esperamos volver a oirte pronto.';
 
         return handlerInput.responseBuilder
             .speak(speakOutput)
+            .getResponse();
+    }
+};
+
+const ExceptionIntentHandler = {
+    canHandle(handlerInput) {
+        return true;
+    },
+    handle(handlerInput){
+        const speakOutput = "Lo siento, no entendí bien que querías decir con eso. ¿Puedes probar con otra cosa, por favor?";
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
             .getResponse();
     }
 };
@@ -498,7 +496,7 @@ const ErrorHandler = {
     }
 };
 //Variables necesarias
-let currentIndex,currentquest, currentStatus, questionsList, datalist, hits, exit, count;
+let currentIndex,currentquest, currentStatus, questionsList, datalist, hits, exit, count, firstPlay;
 
 //Esta es la lista de preguntas de las que va seleccionando el programa. Cuando este acabado, se reemplaza esto por la funcion de seleccionar 5 elementos aleatorios del fichero, ya que de aqui se van borrando
 //para evitar preguntas duplicadas.
@@ -547,6 +545,7 @@ function initialize() {
     currentquest = null;
     count = 0;
     hits = 0;
+    firstPlay = 0;
     currentStatus = null;
     exit = false;
 }
@@ -565,6 +564,7 @@ function getQuestion(random = true) {
         currentquest = getRandomItem(questionsList);
         if (currentIndex === null || count >= 5) {
             const speakOutput = 'Ya respondiste todas las preguntas! ... Has conseguido acertar ' + hits + ' de ' + count + ' preguntas.';
+            initialize();
             exit = true;
             return speakOutput;
         }
@@ -602,7 +602,6 @@ exports.handler = Alexa.SkillBuilders.custom()
     .addRequestHandlers(
         LaunchRequestHandler,
         GameModeIntentHandler,
-        InGameIntentHandler,
         AnswerGenreQuestionIntentHandler,
         AnswerDateQuestionIntentHandler,
         AnswerOverviewQuestionIntentHandler,
@@ -612,6 +611,7 @@ exports.handler = Alexa.SkillBuilders.custom()
         DeleteFromListIntentHandler,
         HelpIntentHandler,
         CancelAndStopIntentHandler,
+        ExceptionIntentHandler,
         FallbackIntentHandler,
         SessionEndedRequestHandler,
         IntentReflectorHandler)
