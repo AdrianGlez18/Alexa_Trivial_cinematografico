@@ -231,10 +231,32 @@
           "samples": [
             "excepcion detectada"
           ]
+        },
+        {
+          "name": "SetRemindersIntent",
+          "slots": [
+            {
+              "name": "movie",
+              "type": "AMAZON.Movie"
+            }
+          ],
+          "samples": [
+            "recuerdame el estreno de {movie}",
+            "avisame del estreno de {movie}",
+            "avisame en el aniversario de estreno de {movie}",
+            "recuerdame cuando se estrenó {movie}"
+          ]
+        },
+        {
+          "name": "EnableReminders",
+          "slots": [],
+          "samples": [
+            "quiero crear un recordatorio"
+          ]
         }
       ],
       "types": []
     }
   },
-  "version": "4"
+  "version": "8"
 }
