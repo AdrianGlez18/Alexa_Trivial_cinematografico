@@ -380,6 +380,141 @@ const DeleteFromListIntentHandler = {
     }
 }
 
+const EnableRemindersHandler = {
+  canHandle(handlerInput) {
+    return Alexa.getRequestType(handlerInput.requestEnvelope) === 'Connections.Response' 
+    || (Alexa.getIntentName(handlerInput.requestEnvelope) === 'EnableReminders');
+  },
+  
+  handle(handlerInput) {
+    const { permissions } = handlerInput.requestEnvelope.context.System.user;
+    //const status = handlerInput.requestEnvelope.request.payload.status;
+    
+    
+    if (!permissions) {
+      return handlerInput.responseBuilder
+        .speak("Para poder utilizar esta funcion, se necesita permiso para crear recordatorios.")
+        .addDirective({
+          type: "Connections.SendRequest",
+          name: "AskFor",
+          payload: {
+            "@type": "AskForPermissionsConsentRequest",
+            "@version": "1",
+            "permissionScope": "alexa::alerts:reminders:skill:readwrite"
+          },
+          token: "user-id-could-go-here"
+        })
+        .getResponse();
+    }
+    
+    const status = handlerInput.requestEnvelope.request.payload.status;
+    
+    switch (status) {
+      case "ACCEPTED":
+        handlerInput.responseBuilder
+          .speak("Perfecto, ya tienes permisos. Puedes pedirme que te recuerde el estreno de alguna pelicula")
+          .reprompt("Para crear el recordatiorio dime: 'recuerdame el estreno de' seguido del nombre de la pelicula.")
+        break;
+      case "DENIED":
+        handlerInput.responseBuilder
+          .speak("Lo siento, pero no puedo crear recordatorios sin los permisos necesarios.")
+          .reprompt()
+        break;
+      case "NOT_ANSWERED":
+
+        break;
+      default: handlerInput.responseBuilder
+          .speak("Perfecto, ya tienes permisos. Puedes pedirme que te recuerde el estreno de alguna pelicula")
+          .reprompt("Para crear el recordatiorio dime: 'recuerdame el estreno de' seguido del nombre de la pelicula.")
+    }
+
+    return handlerInput.responseBuilder
+      .getResponse();
+  }
+}
+
+const SetRemindersIntentHandler = {
+    canHandle(handlerInput) {
+        const { request } = handlerInput.requestEnvelope;
+        return request.type === 'IntentRequest' && request.intent.name === 'SetRemindersIntent';
+    },
+    
+    async handle(handlerInput) {
+        const { requestEnvelope, serviceClientFactory, responseBuilder } = handlerInput;
+        const consentGiven = requestEnvelope.context.System.user.permissions
+            && requestEnvelope.context.System.user.permissions.consentToken;
+            
+        let releaseDate = '';
+        let AnswerValue = '';
+        let remindDate = '';
+        let outputSpeech = 'Perfecto! Tu recordatorio ya esta listo.';
+        AnswerValue = handlerInput.requestEnvelope.request.intent.slots.movie.value;
+        AnswerValue= AnswerValue.replace(/ /g,"+");
+         
+        await getRemoteData('https://api.themoviedb.org/3/search/movie?api_key=5e03a0a0072d0569232bf72951b90803&query=' + AnswerValue)
+        .then((response) => {
+            const data = JSON.parse(response);
+            releaseDate = data.results[0].release_date;
+            let paramDate = releaseDate.split("-");
+            paramDate[0] = "2021";
+            remindDate = paramDate[0] + '-' + paramDate[1] + '-' + paramDate[2];
+            AnswerValue= AnswerValue.replace("+",/ /g);
+            //outputSpeech = `La pelicula ${AnswerValue} se estrenó el ${paramDate[2]} de ${meses[paramDate[1]-1]} del año ${paramDate[0]}. `;
+        })
+        .catch((err) => {
+            console.log(`ERROR: ${err.message}`);
+            outputSpeech = "Problema de acceso a la API";
+        });
+            
+        if (!consentGiven) {
+            return responseBuilder
+                .speak('Lo siento, sin permisos no podemos hacer eso. Por favor, actívelos en la app de Amazon Alexa')
+                .withAskForPermissionsConsentCard(['alexa::alerts:reminders:skill:readwrite'])
+                .getResponse();
+        }
+        
+        try{
+            const manageReminders = serviceClientFactory.getReminderManagementServiceClient();
+            const currentReminder = {
+                //"requestTime" : "2019-09-22T19:04:00.672",
+                "trigger": {
+                    "type" : "SCHEDULED_ABSOLUTE",
+                    "scheduledTime" : remindDate + "T12:00:00.000",
+                    "timeZoneId" : "America/Los_Angeles",
+                    /*"recurrence" : {                     
+                      "startDateTime": "2019-05-10T6:00:00.000",                       
+                      "endDateTime" : "2019-08-10T10:00:00.000",  
+                      "recurrenceRules" : []               
+                    }*/
+                },
+                "alertInfo": {
+                    "spokenInfo": {
+                        "content": [{
+                            "locale": "es-ES", 
+                            "text": "Hola! Hoy es el aniversario del estreno de la pelicula " + AnswerValue + ". Te lo recuerdo tal y como habías pedido.",
+                            "ssml": "<speak> Hola! Hoy es el aniversario del estreno de la pelicula " + AnswerValue + ". Te lo recuerdo tal y como habías pedido</speak>"  
+                        }]
+                    }
+                },
+                "pushNotification" : {                            
+                     "status" : "ENABLED"
+                }
+            };
+            
+            await manageReminders.createReminder(currentReminder);
+            return responseBuilder
+                .speak(outputSpeech)
+                .getResponse();
+            
+        }   catch (err) {
+            console.error(err);
+            return responseBuilder
+                .speak('Algo salió mal. Lo siento, el recordatorio no se ha guardado.')
+                .getResponse();
+        }
+    }
+}
+
 //Todos estos son por defecto, solo cambie los textos y poco mas
 const HelpIntentHandler = {
     canHandle(handlerInput) {
@@ -609,6 +744,8 @@ exports.handler = Alexa.SkillBuilders.custom()
         StoreToListIntentHandler,
         MyListIntentHandler,
         DeleteFromListIntentHandler,
+        EnableRemindersHandler,
+        SetRemindersIntentHandler,
         HelpIntentHandler,
         CancelAndStopIntentHandler,
         ExceptionIntentHandler,
