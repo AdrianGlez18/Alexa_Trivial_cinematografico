@@ -1,7 +1,7 @@
 {
   "interactionModel": {
     "languageModel": {
-      "invocationName": "filmoteca de informatica",
+      "invocationName": "mi pelic",
       "intents": [
         {
           "name": "AMAZON.CancelIntent",
@@ -66,26 +66,6 @@
             "vamos",
             "claro",
             "si"
-          ]
-        },
-        {
-          "name": "AnswerQuestionIntent",
-          "slots": [
-            {
-              "name": "year",
-              "type": "AMAZON.FOUR_DIGIT_NUMBER"
-            },
-            {
-              "name": "protagonist",
-              "type": "AMAZON.Actor"
-            },
-            {
-              "name": "movie",
-              "type": "AMAZON.Movie"
-            }
-          ],
-          "samples": [
-            "temporal antes de eliminar {movie}"
           ]
         },
         {
@@ -198,6 +178,8 @@
             }
           ],
           "samples": [
+            "{movie} a mi lista",
+            "Añadir {movie} a mi lista",
             "Guardar {movie}",
             "Añadir {movie} ",
             "Guardar {movie} en mi lista"
@@ -207,8 +189,12 @@
           "name": "MyListIntent",
           "slots": [],
           "samples": [
-            "que peli puedo ver",
-            "mi lista de pelis",
+            "dime mis peliculas",
+            "lista de peliculas",
+            "mi lista",
+            "mis peliculas",
+            "que pelicula puedo ver",
+            "mi lista de peliculas",
             "Que peliculas tengo guardado"
           ]
         },
@@ -221,6 +207,8 @@
             }
           ],
           "samples": [
+            "quitar de mi lista {movie}",
+            "quitar {movie} de mi lista",
             "Borrar {movie} de mi lista",
             "Borrar {movie}"
           ]
@@ -230,28 +218,6 @@
           "slots": [],
           "samples": [
             "excepcion detectada"
-          ]
-        },
-        {
-          "name": "SetRemindersIntent",
-          "slots": [
-            {
-              "name": "movie",
-              "type": "AMAZON.Movie"
-            }
-          ],
-          "samples": [
-            "recuerdame el estreno de {movie}",
-            "avisame del estreno de {movie}",
-            "avisame en el aniversario de estreno de {movie}",
-            "recuerdame cuando se estrenó {movie}"
-          ]
-        },
-        {
-          "name": "EnableReminders",
-          "slots": [],
-          "samples": [
-            "quiero crear un recordatorio"
           ]
         }
       ],

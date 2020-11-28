@@ -5,8 +5,7 @@ const LaunchRequestHandler = {
     //Aqui se selecciona el modo, y no se vuelve a ejecutar.
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest'
-        || Alexa.getRequestType(handlerInput.requestEnvelope) === 'GameModeIntent'
-        || Alexa.getRequestType(handlerInput.requestEnvelope) === 'AnswerQuestionIntent';
+        || Alexa.getRequestType(handlerInput.requestEnvelope) === 'GameModeIntent';
     },
     handle(handlerInput) {
         initialize();
@@ -73,7 +72,7 @@ const AnswerIntentHandler = {
              AnswerValue = handlerInput.requestEnvelope.request.intent.slots.actor.value;
           }
         /////////////////////////////////////////////////////////////////
-        //De aqui para abajo es copiado de la plantilla/////////////////
+        //De aqui para abajo se comprueban las preguntas/////////////////
         ////////////////////////////////////////////////////////////////
         let speakOutput = '';
         if (currentStatus === 'Continue') {
@@ -120,6 +119,7 @@ const AnswerIntentHandler = {
         if (exit) {
             return handlerInput.responseBuilder
                 .speak(speakOutput)
+                .reprompt(speakOutput)
                 .getResponse();
         } 
         else {
@@ -380,141 +380,6 @@ const DeleteFromListIntentHandler = {
     }
 }
 
-const EnableRemindersHandler = {
-  canHandle(handlerInput) {
-    return Alexa.getRequestType(handlerInput.requestEnvelope) === 'Connections.Response' 
-    || (Alexa.getIntentName(handlerInput.requestEnvelope) === 'EnableReminders');
-  },
-  
-  handle(handlerInput) {
-    const { permissions } = handlerInput.requestEnvelope.context.System.user;
-    //const status = handlerInput.requestEnvelope.request.payload.status;
-    
-    
-    if (!permissions) {
-      return handlerInput.responseBuilder
-        .speak("Para poder utilizar esta funcion, se necesita permiso para crear recordatorios.")
-        .addDirective({
-          type: "Connections.SendRequest",
-          name: "AskFor",
-          payload: {
-            "@type": "AskForPermissionsConsentRequest",
-            "@version": "1",
-            "permissionScope": "alexa::alerts:reminders:skill:readwrite"
-          },
-          token: "user-id-could-go-here"
-        })
-        .getResponse();
-    }
-    
-    const status = handlerInput.requestEnvelope.request.payload.status;
-    
-    switch (status) {
-      case "ACCEPTED":
-        handlerInput.responseBuilder
-          .speak("Perfecto, ya tienes permisos. Puedes pedirme que te recuerde el estreno de alguna pelicula")
-          .reprompt("Para crear el recordatiorio dime: 'recuerdame el estreno de' seguido del nombre de la pelicula.")
-        break;
-      case "DENIED":
-        handlerInput.responseBuilder
-          .speak("Lo siento, pero no puedo crear recordatorios sin los permisos necesarios.")
-          .reprompt()
-        break;
-      case "NOT_ANSWERED":
-
-        break;
-      default: handlerInput.responseBuilder
-          .speak("Perfecto, ya tienes permisos. Puedes pedirme que te recuerde el estreno de alguna pelicula")
-          .reprompt("Para crear el recordatiorio dime: 'recuerdame el estreno de' seguido del nombre de la pelicula.")
-    }
-
-    return handlerInput.responseBuilder
-      .getResponse();
-  }
-}
-
-const SetRemindersIntentHandler = {
-    canHandle(handlerInput) {
-        const { request } = handlerInput.requestEnvelope;
-        return request.type === 'IntentRequest' && request.intent.name === 'SetRemindersIntent';
-    },
-    
-    async handle(handlerInput) {
-        const { requestEnvelope, serviceClientFactory, responseBuilder } = handlerInput;
-        const consentGiven = requestEnvelope.context.System.user.permissions
-            && requestEnvelope.context.System.user.permissions.consentToken;
-            
-        let releaseDate = '';
-        let AnswerValue = '';
-        let remindDate = '';
-        let outputSpeech = 'Perfecto! Tu recordatorio ya esta listo.';
-        AnswerValue = handlerInput.requestEnvelope.request.intent.slots.movie.value;
-        AnswerValue= AnswerValue.replace(/ /g,"+");
-         
-        await getRemoteData('https://api.themoviedb.org/3/search/movie?api_key=5e03a0a0072d0569232bf72951b90803&query=' + AnswerValue)
-        .then((response) => {
-            const data = JSON.parse(response);
-            releaseDate = data.results[0].release_date;
-            let paramDate = releaseDate.split("-");
-            paramDate[0] = "2021";
-            remindDate = paramDate[0] + '-' + paramDate[1] + '-' + paramDate[2];
-            AnswerValue= AnswerValue.replace("+",/ /g);
-            //outputSpeech = `La pelicula ${AnswerValue} se estrenó el ${paramDate[2]} de ${meses[paramDate[1]-1]} del año ${paramDate[0]}. `;
-        })
-        .catch((err) => {
-            console.log(`ERROR: ${err.message}`);
-            outputSpeech = "Problema de acceso a la API";
-        });
-            
-        if (!consentGiven) {
-            return responseBuilder
-                .speak('Lo siento, sin permisos no podemos hacer eso. Por favor, actívelos en la app de Amazon Alexa')
-                .withAskForPermissionsConsentCard(['alexa::alerts:reminders:skill:readwrite'])
-                .getResponse();
-        }
-        
-        try{
-            const manageReminders = serviceClientFactory.getReminderManagementServiceClient();
-            const currentReminder = {
-                //"requestTime" : "2019-09-22T19:04:00.672",
-                "trigger": {
-                    "type" : "SCHEDULED_ABSOLUTE",
-                    "scheduledTime" : remindDate + "T12:00:00.000",
-                    "timeZoneId" : "America/Los_Angeles",
-                    /*"recurrence" : {                     
-                      "startDateTime": "2019-05-10T6:00:00.000",                       
-                      "endDateTime" : "2019-08-10T10:00:00.000",  
-                      "recurrenceRules" : []               
-                    }*/
-                },
-                "alertInfo": {
-                    "spokenInfo": {
-                        "content": [{
-                            "locale": "es-ES", 
-                            "text": "Hola! Hoy es el aniversario del estreno de la pelicula " + AnswerValue + ". Te lo recuerdo tal y como habías pedido.",
-                            "ssml": "<speak> Hola! Hoy es el aniversario del estreno de la pelicula " + AnswerValue + ". Te lo recuerdo tal y como habías pedido</speak>"  
-                        }]
-                    }
-                },
-                "pushNotification" : {                            
-                     "status" : "ENABLED"
-                }
-            };
-            
-            await manageReminders.createReminder(currentReminder);
-            return responseBuilder
-                .speak(outputSpeech)
-                .getResponse();
-            
-        }   catch (err) {
-            console.error(err);
-            return responseBuilder
-                .speak('Algo salió mal. Lo siento, el recordatorio no se ha guardado.')
-                .getResponse();
-        }
-    }
-}
-
 //Todos estos son por defecto, solo cambie los textos y poco mas
 const HelpIntentHandler = {
     canHandle(handlerInput) {
@@ -631,51 +496,13 @@ const ErrorHandler = {
     }
 };
 //Variables necesarias
-let currentIndex,currentquest, currentStatus, questionsList, datalist, hits, exit, count, firstPlay;
+var currentIndex,currentquest, currentStatus, questionsList, datalist, hits, exit, count, firstPlay;
 
 //Esta es la lista de preguntas de las que va seleccionando el programa. Cuando este acabado, se reemplaza esto por la funcion de seleccionar 5 elementos aleatorios del fichero, ya que de aqui se van borrando
 //para evitar preguntas duplicadas.
-function initialize() {
-    questionsList = {
-      '0': {
-        'invoce' : 'year',
-        'quest' : 'En que año salio la película',
-        'ans': 'Correcto, Esta peli salio en '
-      },
-      '1': {
-        'invoce' : 'genre',
-        'quest' : 'A que género pertenece ',
-        'ans': 'Correcto, También pertence al género de '
-      },
-      '2': {
-        'invoce' : 'protagonist',
-        'quest' : 'Dime un protagonista de la pelicula ',
-        'ans': 'Correcto, Otros serían '
-      }
-    };
-    datalist = {
-        '0' : {
-            'id' : '0',
-            'title' : 'Matrix',
-            'year' : '1999',
-            'genre' : ['ciencia ficción', 'acción'],
-            'protagonist' : ['keanu reeves','laurence fishburne','carrie-anne moss','hugo weaving','joe pantoliano','marcus chong','paul goddard','gloria foster']
-        },
-        '1' : {
-            'id' : '1',
-            'title' : 'Regreso al futuro',
-            'year' : '1985',
-            'genre' : ['ciencia ficción', 'aventuras','comedia'],
-            'protagonist' : ['michael fox','christopher lloyd','crispin glover','lea thompson','thomas wilson']
-        },
-        '2' : {
-            'id' : '2',
-            'title' : 'Capitana Marvel',
-            'year' : '2019',
-            'genre' : ['ciencia ficción', 'acción','superhéroes'],
-            'protagonist' : ['brie larson','samuel jackson','ben mendelsohn','djimon hounsou','lee pace','lashana lynch','gemma chan','clark gregg','annette bening','jude law']
-        }
-    };
+async function initialize() {
+    questionsList = require('./movie_data_questions.js');
+    datalist = require('./movie_data.js');
     currentIndex = null;
     currentquest = null;
     count = 0;
@@ -697,10 +524,11 @@ function getQuestion(random = true) {
     if (random) {
         currentIndex = getRandomItem(datalist);
         currentquest = getRandomItem(questionsList);
-        if (currentIndex === null || count >= 5) {
+        if (currentIndex === null || count >= 3) {
             const speakOutput = 'Ya respondiste todas las preguntas! ... Has conseguido acertar ' + hits + ' de ' + count + ' preguntas.';
-            initialize();
             exit = true;
+            datalist = {};
+            initialize()
             return speakOutput;
         }
         delete datalist[currentIndex.id];
@@ -744,15 +572,12 @@ exports.handler = Alexa.SkillBuilders.custom()
         StoreToListIntentHandler,
         MyListIntentHandler,
         DeleteFromListIntentHandler,
-        EnableRemindersHandler,
-        SetRemindersIntentHandler,
         HelpIntentHandler,
         CancelAndStopIntentHandler,
         ExceptionIntentHandler,
         FallbackIntentHandler,
         SessionEndedRequestHandler,
         IntentReflectorHandler)
-    .addErrorHandlers(
-        ErrorHandler)
+    .addErrorHandlers(ErrorHandler)
     .withCustomUserAgent('sample/hello-world/v1.2')
     .lambda();
