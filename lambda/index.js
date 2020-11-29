@@ -18,20 +18,13 @@ const LaunchRequestHandler = {
     }
 };
 
+//Este handler se encarga de iniciar el modo de juego. Además, genera las nuevas preguntas desde el fichero, haciendo llamadas a metodos para obtenerlo.
 const GameModeIntentHandler = {
-    //Este solo introduce el juego y confirma que se quiere jugar, pero de momento no manda el mensaje y entra directamente. Luego lo cambiamos
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
             && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'InGameIntent'
             || Alexa.getIntentName(handlerInput.requestEnvelope) === 'GameModeIntent')
     },
-    /*handle(handlerInput) {
-        const speechText = "Has entrado al modo de juego. Te haré 3 preguntas, y veremos cuántas de ellas has logrado acertar. ¿Te animas?";
-
-        return handlerInput.responseBuilder
-            .speak(speechText)
-            .getResponse() && InGameIntentHandler.handle(handlerInput);
-    }*/
     
     handle(handlerInput) {
         if(firstPlay === 0){
@@ -53,7 +46,7 @@ const GameModeIntentHandler = {
     
 };
 
-//Funcionando. Falta arreglar el error que se genera cuando se usa un intent no definido, ya que llama a este metodo aunque no debería. No lo cambies de momento, creo saber como arreglarlo
+//Handler encargado de gestionar el flujo del juego del trivial, y conmprobar si las respuestas son correctas o no.
 const AnswerIntentHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
@@ -72,7 +65,7 @@ const AnswerIntentHandler = {
              AnswerValue = handlerInput.requestEnvelope.request.intent.slots.actor.value;
           }
         /////////////////////////////////////////////////////////////////
-        //De aqui para abajo se comprueban las preguntas/////////////////
+        ////////De aqui para abajo se comprueban las preguntas//////////
         ////////////////////////////////////////////////////////////////
         let speakOutput = '';
         if (currentStatus === 'Continue') {
@@ -128,13 +121,10 @@ const AnswerIntentHandler = {
                 .reprompt(speakOutput)
                 .getResponse();
         }
-        ///////////////////////////////////////
-        /////////Hasta aqui///////////////////
-        ////////////////////////////////////
     }
 };
 
-//Completado y funcionando. Hace una petición para obtener la fecha de estreno y reformatea la respuesta.
+//Hace una petición para obtener la fecha de estreno y reformatea la respuesta.
 const AnswerDateQuestionIntentHandler = {
     canHandle(handlerInput) {
     return handlerInput.requestEnvelope.request.type === 'LaunchRequest'
@@ -171,7 +161,7 @@ const AnswerDateQuestionIntentHandler = {
   },
 }
 
-//Completado y funcionando. Hace dos peticiones para obtener la sinopsis de una pelicula.
+//Hace dos peticiones para obtener la sinopsis de una pelicula.
 const AnswerOverviewQuestionIntentHandler = {
     canHandle(handlerInput) {
     return handlerInput.requestEnvelope.request.type === 'LaunchRequest'
@@ -214,7 +204,7 @@ const AnswerOverviewQuestionIntentHandler = {
   },
 }
 
-//Completado y funcionando. Hace dos peticiones para obtener el listado de generos a los que pertenece una pelicula.
+//Hace dos peticiones para obtener el listado de generos a los que pertenece una pelicula.
 const AnswerGenreQuestionIntentHandler = {
     canHandle(handlerInput) {
     return handlerInput.requestEnvelope.request.type === 'LaunchRequest'
@@ -269,10 +259,8 @@ const AnswerGenreQuestionIntentHandler = {
   },
 }
 
+//Guarda pelis en memoria persistente
 const StoreToListIntentHandler = {
-    ////////////////////////////////////////////////////////////////
-    // Esto es para guarda pelis a memoria persistente   ///////////
-    ///////////////////////////////////////////////////////////////
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
             && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'StoreToListIntent')
@@ -305,10 +293,8 @@ const StoreToListIntentHandler = {
     }
 }
 
+//Muestra las pelis guardadas en memoria persistente
 const MyListIntentHandler = {
-    ////////////////////////////////////////////////////////////////
-    // Esto es para ver los pelis guardados             ///////////
-    ///////////////////////////////////////////////////////////////
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
             && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'MyListIntent')
@@ -342,10 +328,8 @@ const MyListIntentHandler = {
     }
 }
 
+//Borra pelis de memoria persistente
 const DeleteFromListIntentHandler = {
-    ////////////////////////////////////////////////////////////////
-    // Esto es para borrar pelis de memoria persistente   ///////////
-    ///////////////////////////////////////////////////////////////
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
             && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'DeleteFromListIntent')
@@ -380,7 +364,7 @@ const DeleteFromListIntentHandler = {
     }
 }
 
-//Todos estos son por defecto, solo cambie los textos y poco mas
+//Gestor de ayudas
 const HelpIntentHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
@@ -396,7 +380,7 @@ const HelpIntentHandler = {
     }
 };
 
-//Añadido el NoIntent para que se cancele al negarse a continuar
+//Detiene el flujo del programa si el usuario indica que desea salir
 const CancelAndStopIntentHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
@@ -413,6 +397,7 @@ const CancelAndStopIntentHandler = {
     }
 };
 
+//Gestor de excepciones. Se llama si se utiliza alguna palabra no detectada por la skill
 const ExceptionIntentHandler = {
     canHandle(handlerInput) {
         return true;
@@ -426,7 +411,6 @@ const ExceptionIntentHandler = {
     }
 };
 
-//Todos estos son por defecto, solo cambie los textos y poco mas
 const FallbackIntentHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
@@ -498,8 +482,7 @@ const ErrorHandler = {
 //Variables necesarias
 var currentIndex,currentquest, currentStatus, questionsList, datalist, hits, exit, count, firstPlay;
 
-//Esta es la lista de preguntas de las que va seleccionando el programa. Cuando este acabado, se reemplaza esto por la funcion de seleccionar 5 elementos aleatorios del fichero, ya que de aqui se van borrando
-//para evitar preguntas duplicadas.
+//Esta es la lista de preguntas de las que va seleccionando el programa. Al llamarse, reinicia las variables necesarias y genera un listado de preguntas desde el fichero
 async function initialize() {
     questionsList = require('./movie_data_questions.js');
     datalist = require('./movie_data.js');
@@ -512,6 +495,7 @@ async function initialize() {
     exit = false;
 }
 
+//Obtiene un elemento aleaatorio de una lista o vector
 function getRandomItem(lst) {
     if (Object.keys(lst).length === 0) {
         return null;
@@ -519,7 +503,7 @@ function getRandomItem(lst) {
     return lst[Object.keys(lst)[Math.floor(Math.random()*Object.keys(lst).length)]];
 }
 
-//Completado y funcionando. Elige una pregunta aleatoria
+//Elige una pregunta aleatoria de la lista, y notifica cuando ya se han hecho todas
 function getQuestion(random = true) {
     if (random) {
         currentIndex = getRandomItem(datalist);
@@ -538,7 +522,7 @@ function getQuestion(random = true) {
     return speakOutput
 }
 
-//Completado y funcionando. Encargado de la peticion GET a la API y del control de los codigos retornados.
+//Encargado de la peticion GET a la API y del control de los codigos retornados.
 const getRemoteData = (url) => new Promise((resolve, reject) => {
   const client = url.startsWith('https') ? require('https') : require('http');
   const request = client.get(url, (response) => {
